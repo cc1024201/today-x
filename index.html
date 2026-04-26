@@ -513,7 +513,33 @@
   }
 
   // ── SCREENS ────────────────────────────────────────
-  function renderSkinGrid() { /* Task 9 */ }
+  function renderSkinGrid() {
+    const grid = document.getElementById('skin-grid');
+    grid.innerHTML = '';
+    SKINS.forEach(skin => {
+      const card = document.createElement('div');
+      card.style.cssText = `
+        background: ${gs.activeSkinId === skin.id ? skin.colors.primary : '#fff'};
+        color: ${gs.activeSkinId === skin.id ? '#fff' : '#333'};
+        border: 3px solid ${gs.activeSkinId === skin.id ? skin.colors.accent : '#eee'};
+        border-radius: 16px; padding: 16px; text-align: center; cursor: pointer;
+        transition: transform 0.1s;
+      `;
+      card.innerHTML = `
+        <div style="font-size:36px">${skin.emoji}</div>
+        <div style="font-size:13px;font-weight:700;margin-top:6px">${skin.name}</div>
+        <div style="font-size:11px;opacity:0.7;margin-top:2px">${skin.label}</div>
+      `;
+      card.addEventListener('click', () => {
+        gs.activeSkinId = skin.id;
+        renderSkinGrid();
+      });
+      card.addEventListener('pointerdown', () => { card.style.transform = 'scale(0.95)'; });
+      card.addEventListener('pointerup', () => { card.style.transform = 'scale(1)'; });
+      grid.appendChild(card);
+    });
+  }
+
   function startTutorial() { /* Task 12 */ }
 
   const screens = {
