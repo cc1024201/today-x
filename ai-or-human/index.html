@@ -323,6 +323,26 @@ const QUESTIONS = [
     hint: '"想起却不行动"是人类情感的真实矛盾，AI 会让主角去联系或感慨万千'
   },
 ];
+
+// ── PURE LOGIC ─────────────────────────────────────
+const TT = {};
+
+TT.shuffle = function(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+TT.isCorrect = function(guessIsAI, questionIsAI) {
+  return guessIsAI === questionIsAI;
+};
+
+TT.getNextStreak = function(current, correct) {
+  return correct ? current + 1 : 0;
+};
   </script>
 </body>
 </html>
