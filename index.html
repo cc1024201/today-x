@@ -607,7 +607,33 @@
     });
   }
 
-  function startTutorial() { /* Task 12 */ }
+  function startTutorial() {
+    gs.screen = STATE.TUTORIAL;
+    showScreen('tutorial');
+
+    let countdown = 3;
+    const timerEl = document.getElementById('tutorial-timer');
+
+    const interval = setInterval(() => {
+      countdown--;
+      if (countdown <= 0) {
+        clearInterval(interval);
+        finishTutorial();
+      } else {
+        timerEl.textContent = `${countdown} 秒后自动开始...`;
+      }
+    }, 1000);
+
+    document.getElementById('btn-tutorial-skip').addEventListener('click', () => {
+      clearInterval(interval);
+      finishTutorial();
+    }, { once: true });
+  }
+
+  function finishTutorial() {
+    localStorage.setItem('brushmaster_tutorial_seen', '1');
+    goToPlaying();
+  }
 
   const screens = {
     menu:     document.getElementById('screen-menu'),
