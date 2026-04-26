@@ -343,6 +343,59 @@ TT.isCorrect = function(guessIsAI, questionIsAI) {
 TT.getNextStreak = function(current, correct) {
   return correct ? current + 1 : 0;
 };
+
+// ── STATE ──────────────────────────────────────────
+const STATE = { MENU: 'MENU', PLAYING: 'PLAYING' };
+
+const gs = {
+  screen: STATE.MENU,
+  deck: [],          // 洗好的题库副本
+  deckIndex: 0,      // 当前题目指针
+  streak: 0,
+  bestStreak: 0,
+  answered: false,   // 当前题是否已作答（防止重复点击）
+};
+
+function showScreen(name) {
+  document.getElementById('screen-menu').classList.toggle('hidden', name !== 'menu');
+  document.getElementById('screen-playing').classList.toggle('hidden', name !== 'playing');
+}
+
+function goToMenu() {
+  gs.screen = STATE.MENU;
+  document.getElementById('menu-best').textContent =
+    gs.bestStreak > 0 ? `历史最高连击 ${gs.bestStreak}` : '';
+  showScreen('menu');
+}
+
+function goToPlaying() {
+  gs.screen = STATE.PLAYING;
+  gs.streak = 0;
+  gs.deck = TT.shuffle(QUESTIONS);
+  gs.deckIndex = 0;
+  gs.answered = false;
+  showScreen('playing');
+  loadQuestion();
+}
+
+function loadQuestion() {
+  if (gs.deckIndex >= gs.deck.length) {
+    gs.deck = TT.shuffle(QUESTIONS);
+    gs.deckIndex = 0;
+  }
+  const q = gs.deck[gs.deckIndex];
+  document.getElementById('question-text').textContent = q.text;
+  const card = document.getElementById('card');
+  card.classList.add('no-transition');
+  card.classList.remove('flipped');
+  // 强制 reflow，然后恢复 transition
+  void card.offsetWidth;
+  card.classList.remove('no-transition');
+  document.getElementById('card-front').classList.remove('correct', 'wrong');
+  document.getElementById('btn-ai').disabled = false;
+  document.getElementById('btn-human').disabled = false;
+  gs.answered = false;
+}
   </script>
 </body>
 </html>
