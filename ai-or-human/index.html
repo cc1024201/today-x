@@ -445,6 +445,22 @@ function advanceCard() {
   wrapper.classList.add('slide-in');
   loadQuestion();
 }
+
+// ── HUD ────────────────────────────────────────────
+function updateHUD(correct) {
+  const streakEl = document.getElementById('streak-display');
+  document.getElementById('streak-num').textContent = gs.streak;
+  document.getElementById('best-num').textContent = gs.bestStreak;
+
+  if (!correct) {
+    streakEl.classList.remove('shake');
+    void streakEl.offsetWidth; // 强制 reflow 让动画重新触发
+    streakEl.classList.add('shake');
+    streakEl.addEventListener('animationend', () => {
+      streakEl.classList.remove('shake');
+    }, { once: true });
+  }
+}
   </script>
 </body>
 </html>
