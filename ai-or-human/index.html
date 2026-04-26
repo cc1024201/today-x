@@ -172,6 +172,25 @@
       to   { opacity: 1; transform: translateY(0); }
     }
     #card-wrapper.slide-in { animation: slideInUp 0.3s ease; }
+
+    #back-btn {
+      position: absolute;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 13px;
+      cursor: pointer;
+      padding: 8px 16px;
+    }
+    #back-btn:hover { color: var(--text); }
+
+    @media (max-height: 600px) {
+      #card-front, #card-back { min-height: 160px; padding: 18px 16px; }
+      #card-front { font-size: 15px; }
+    }
   </style>
 </head>
 <body>
@@ -208,6 +227,8 @@
         <button id="btn-ai" class="answer-btn">🤖 AI 写的</button>
         <button id="btn-human" class="answer-btn">👤 人类写的</button>
       </div>
+
+      <button id="back-btn">返回菜单</button>
     </div>
 
   </div>
@@ -471,6 +492,7 @@ function init() {
   document.getElementById('btn-start').addEventListener('click', goToPlaying);
   document.getElementById('btn-ai').addEventListener('click', () => submitAnswer(true));
   document.getElementById('btn-human').addEventListener('click', () => submitAnswer(false));
+  document.getElementById('back-btn').addEventListener('click', goToMenu);
 
   // 初始画面
   goToMenu();
