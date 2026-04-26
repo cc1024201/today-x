@@ -187,6 +187,9 @@
     return Math.round(skin.timing.turningMin + rng() * (skin.timing.turningMax - skin.timing.turningMin));
   };
 
+  // ── CONSTANTS ───────────────────────────────────────
+  const LOOKING_GRACE_MS = 600;
+
   // ── GAME STATE ─────────────────────────────────────
   const gs = {
     screen: STATE.MENU,
@@ -274,8 +277,8 @@
       updateCharacter();
     } else if (gs.phase === PHASE.LOOKING) {
       if (BM.shouldDie(gs.phaseElapsed, skin.timing.reactionWindow, gs.isBrushing)) {
-        triggerDeath(skin);
-      } else if (!gs.isBrushing && gs.phaseElapsed >= skin.timing.reactionWindow + 600) {
+        triggerDeath();
+      } else if (!gs.isBrushing && gs.phaseElapsed >= skin.timing.reactionWindow + LOOKING_GRACE_MS) {
         gs.comboCount++;
         gs.maxCombo = Math.max(gs.maxCombo, gs.comboCount);
         updateComboDisplay();
@@ -304,11 +307,10 @@
   function enterLooking(skin) {
     gs.phase = PHASE.LOOKING;
     gs.phaseElapsed = 0;
-    gs.phaseDuration = skin.timing.reactionWindow + 600;
     updateCharacter();
   }
 
-  function triggerDeath(skin) {
+  function triggerDeath() {
     gs.isBrushing = false;
     stopBrushSound();
     if (gs.score > gs.highScore) {
