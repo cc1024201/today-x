@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>刷猫高手</title>
+  <style>
+    :root {
+      --bg: #fff8f0;
+      --primary: #ff8c42;
+      --accent: #ff6b35;
+      --shadow: #c4622a;
+      --text: #333;
+      --muted: #aaa;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: sans-serif; }
+    #app {
+      position: relative; width: 100%; height: 100%;
+      max-width: 420px; margin: 0 auto;
+      display: flex; flex-direction: column;
+    }
+    canvas#bg-canvas {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 0;
+    }
+    #ui { position: absolute; inset: 0; z-index: 1; }
+    .screen {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 16px; padding: 24px;
+    }
+    .screen.hidden { display: none; }
+    .btn {
+      padding: 12px 32px; border-radius: 28px; border: none;
+      font-size: 16px; font-weight: 700; cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .btn:active { transform: scale(0.95); }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 0 var(--shadow); }
+    .btn-secondary { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="bg-canvas"></canvas>
+    <div id="ui">
+
+      <!-- ① MENU -->
+      <div id="screen-menu" class="screen">
+        <div id="menu-title" style="font-size:32px;font-weight:900;color:var(--accent)">刷猫高手</div>
+        <div id="menu-subtitle" style="font-size:13px;color:var(--muted)">Brush Master</div>
+        <div id="menu-highscore" style="font-size:13px;color:var(--muted)">最高分: 0</div>
+        <button id="btn-start" class="btn btn-primary">开始游戏</button>
+        <button id="btn-goto-skins" class="btn btn-secondary">选择皮肤</button>
+      </div>
+
+      <!-- ② SKIN SELECT -->
+      <div id="screen-skins" class="screen hidden">
+        <div style="font-size:18px;font-weight:700;color:var(--text)">选择监视者</div>
+        <div id="skin-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%"></div>
+        <button id="btn-skin-back" class="btn btn-secondary">返回</button>
+      </div>
+
+      <!-- ③ TUTORIAL -->
+      <div id="screen-tutorial" class="screen hidden" style="background:rgba(0,0,0,0.85)">
+        <div style="font-size:48px">🐱</div>
+        <div style="font-size:20px;font-weight:700;color:#fff;text-align:center">背对你时——刷！</div>
+        <div style="font-size:20px;font-weight:700;color:#ff6b35;text-align:center">转头时——停！</div>
+        <div id="tutorial-timer" style="font-size:13px;color:#888">3 秒后自动开始...</div>
+        <button id="btn-tutorial-skip" class="btn btn-primary" style="margin-top:8px">明白了，开始！</button>
+      </div>
+
+      <!-- ④ PLAYING -->
+      <div id="screen-playing" class="screen hidden" style="justify-content:space-between;padding:16px">
+        <!-- HUD -->
+        <div id="hud" style="width:100%;display:flex;justify-content:space-between;align-items:center">
+          <div id="score-display" style="font-size:24px;font-weight:900;color:var(--accent)">0</div>
+          <div id="combo-display" style="font-size:14px;font-weight:700;color:var(--primary)"></div>
+        </div>
+        <!-- Character area -->
+        <div id="char-area" style="flex:1;display:flex;align-items:center;justify-content:center">
+          <div id="character" style="position:relative;width:120px;height:120px"></div>
+        </div>
+        <!-- Brush zone -->
+        <div id="brush-zone"
+          style="width:100%;height:100px;background:#ffe8d0;border-radius:20px;
+                 display:flex;align-items:center;justify-content:center;
+                 border:3px dashed #ffb880;user-select:none;touch-action:none;cursor:pointer">
+          <div style="text-align:center;pointer-events:none">
+            <div style="font-size:15px;font-weight:700;color:var(--primary)">按住刷毛</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">转头立刻松手</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ⑤ DEAD -->
+      <div id="screen-dead" class="screen hidden" style="background:#1a0a00">
+        <div id="dead-char" style="font-size:64px"></div>
+        <div id="dead-title" style="font-size:36px;font-weight:900;color:#ff3333;letter-spacing:3px;
+             text-shadow:0 0 30px #ff000099">YOU DIED</div>
+        <div id="dead-scores" style="text-align:center;color:#ff8c42;font-size:14px;line-height:2"></div>
+        <button id="btn-retry" class="btn btn-primary">再来一局</button>
+        <button id="btn-dead-menu" class="btn btn-secondary" style="color:#ff8c42;border-color:#ff8c42">主菜单</button>
+      </div>
+
+    </div>
+  </div>
+  <script>
+  // ── CONSTANTS & SKINS ──────────────────────────────
+  // ── PURE LOGIC ─────────────────────────────────────
+  // ── GAME STATE ─────────────────────────────────────
+  // ── AUDIO ──────────────────────────────────────────
+  // ── RENDER ─────────────────────────────────────────
+  // ── INPUT ──────────────────────────────────────────
+  // ── GAME LOOP ──────────────────────────────────────
+  // ── SCREENS ────────────────────────────────────────
+  // ── INIT ───────────────────────────────────────────
+  </script>
+</body>
+</html>
