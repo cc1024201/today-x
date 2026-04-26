@@ -359,9 +359,7 @@
       }
     } else if (gs.phase === PHASE.TURNING) {
       const progress = Math.min(gs.phaseElapsed / gs.phaseDuration, 1);
-      const deg = gs.isFakeThisTurn
-        ? (progress <= 0.5 ? progress * 2 * 90 : (1 - progress) * 2 * 90)
-        : progress * 180;
+      const deg = progress * 180;
       inner.style.transform = `rotateY(${deg}deg)`;
       if (gs.activeSkinId === 'camera') {
         const led = document.getElementById('camera-led');
@@ -389,8 +387,9 @@
     const zone = document.getElementById('brush-zone');
 
     zone.addEventListener('pointerdown', e => {
-      e.preventDefault();
       if (gs.screen !== STATE.PLAYING) return;
+      e.preventDefault();
+      zone.setPointerCapture(e.pointerId);
       gs.isBrushing = true;
       zone.style.background = '#ffd4a8';
       zone.style.transform = 'scale(0.97)';
@@ -407,6 +406,15 @@
     });
 
     document.getElementById('brush-zone').addEventListener('contextmenu', e => e.preventDefault());
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && gs.isBrushing) {
+        gs.isBrushing = false;
+        zone.style.background = '#ffe8d0';
+        zone.style.transform = 'scale(1)';
+        stopBrushSound();
+      }
+    });
   }
 
   // ── GAME LOOP ─────────────────────────────────────
