@@ -293,6 +293,7 @@
 
   function startBrushSound() {
     const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
     if (brushNode) return;
     brushGain = ctx.createGain();
     brushGain.gain.setValueAtTime(0, ctx.currentTime);
@@ -455,17 +456,29 @@
     const canvas = document.getElementById('bg-canvas');
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
+    cacheBrushZoneRect();
   }
 
   const particles = [];
+  let cachedPrimaryColor = '#ff8c42';
+  let brushZoneCache = { left: 0, top: 0, width: 0, height: 0 };
 
-  function spawnBrushParticle() {
+  function cacheBrushZoneRect() {
     const zone = document.getElementById('brush-zone');
     const appRect = document.getElementById('app').getBoundingClientRect();
     const rect = zone.getBoundingClientRect();
+    brushZoneCache = {
+      left: rect.left - appRect.left,
+      top: rect.top - appRect.top,
+      width: rect.width,
+      height: rect.height,
+    };
+  }
+
+  function spawnBrushParticle() {
     particles.push({
-      x: rect.left - appRect.left + Math.random() * rect.width,
-      y: rect.top - appRect.top + Math.random() * 20,
+      x: brushZoneCache.left + Math.random() * brushZoneCache.width,
+      y: brushZoneCache.top + Math.random() * 20,
       vx: (Math.random() - 0.5) * 2,
       vy: -Math.random() * 3 - 1,
       life: 1,
@@ -483,8 +496,7 @@
     }
 
     if (particles.length > 0) {
-      const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
-      ctx2d.fillStyle = primaryColor;
+      ctx2d.fillStyle = cachedPrimaryColor;
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.x += p.vx; p.y += p.vy; p.life -= 0.04;
@@ -718,6 +730,7 @@
     buildCharacter();
     resetPlayState(skin);
     showScreen('playing');
+    cacheBrushZoneRect();
   }
 
   function goToDead() {
@@ -736,6 +749,7 @@
     document.documentElement.style.setProperty('--bg', skin.colors.bg);
     document.documentElement.style.setProperty('--primary', skin.colors.primary);
     document.documentElement.style.setProperty('--accent', skin.colors.accent);
+    cachedPrimaryColor = skin.colors.primary;
   }
 
   function updateHighScoreDisplay() {
