@@ -377,12 +377,15 @@ const gs = {
   answered: false,   // 当前题是否已作答（防止重复点击）
 };
 
+let pendingTimer = null;
+
 function showScreen(name) {
   document.getElementById('screen-menu').classList.toggle('hidden', name !== 'menu');
   document.getElementById('screen-playing').classList.toggle('hidden', name !== 'playing');
 }
 
 function goToMenu() {
+  clearTimeout(pendingTimer);
   gs.screen = STATE.MENU;
   document.getElementById('menu-best').textContent =
     gs.bestStreak > 0 ? `历史最高连击 ${gs.bestStreak}` : '';
@@ -452,7 +455,7 @@ function submitAnswer(guessIsAI) {
   updateHUD(correct);
 
   // 1.5 秒后进入下一题
-  setTimeout(() => {
+  pendingTimer = setTimeout(() => {
     gs.deckIndex++;
     advanceCard();
   }, 1500);
@@ -486,7 +489,8 @@ function updateHUD(correct) {
 // ── INIT ───────────────────────────────────────────
 function init() {
   // 加载最高记录
-  gs.bestStreak = parseInt(localStorage.getItem('tt_best_streak') || '0', 10);
+  const saved = parseInt(localStorage.getItem('tt_best_streak'), 10);
+  gs.bestStreak = isNaN(saved) ? 0 : saved;
 
   // 绑定按钮
   document.getElementById('btn-start').addEventListener('click', goToPlaying);
