@@ -22,7 +22,7 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'SimHei', sans-serif;
       min-height: 100dvh;
       display: flex;
       align-items: center;
@@ -96,17 +96,17 @@
 
     #card {
       width: 100%;
-      min-height: 220px;
+      height: 220px;
       position: relative;
       transform-style: preserve-3d;
       transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
     }
     #card.flipped { transform: rotateY(180deg); }
+    #card.no-transition { transition: none; }
 
     #card-front, #card-back {
       position: absolute;
       inset: 0;
-      min-height: 220px;
       border-radius: 20px;
       padding: 28px 24px;
       backface-visibility: hidden;
@@ -152,7 +152,7 @@
       transition: transform 0.1s, opacity 0.1s;
       color: #fff;
     }
-    .answer-btn:active { transform: scale(0.96); }
+    .answer-btn:not(:disabled):active { transform: scale(0.96); }
     .answer-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
     #btn-ai    { background: var(--ai-btn); }
     #btn-human { background: var(--human-btn); }
