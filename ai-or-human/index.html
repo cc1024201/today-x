@@ -396,6 +396,55 @@ function loadQuestion() {
   document.getElementById('btn-human').disabled = false;
   gs.answered = false;
 }
+
+// ── ANSWER ─────────────────────────────────────────
+function submitAnswer(guessIsAI) {
+  if (gs.answered) return;
+  gs.answered = true;
+
+  const q = gs.deck[gs.deckIndex];
+  const correct = TT.isCorrect(guessIsAI, q.isAI);
+
+  // 正面变色
+  const cardFront = document.getElementById('card-front');
+  cardFront.classList.add(correct ? 'correct' : 'wrong');
+
+  // 填充背面内容
+  document.getElementById('answer-label').textContent =
+    q.isAI ? '🤖 AI 写的' : '👤 人类写的';
+  document.getElementById('hint-text').textContent = q.hint;
+
+  // 禁用按钮
+  document.getElementById('btn-ai').disabled = true;
+  document.getElementById('btn-human').disabled = true;
+
+  // 翻牌
+  document.getElementById('card').classList.add('flipped');
+
+  // 更新连击
+  const newStreak = TT.getNextStreak(gs.streak, correct);
+  gs.streak = newStreak;
+  if (gs.streak > gs.bestStreak) {
+    gs.bestStreak = gs.streak;
+    localStorage.setItem('tt_best_streak', gs.bestStreak);
+  }
+  updateHUD(correct);
+
+  // 1.5 秒后进入下一题
+  setTimeout(() => {
+    gs.deckIndex++;
+    advanceCard();
+  }, 1500);
+}
+
+function advanceCard() {
+  const wrapper = document.getElementById('card-wrapper');
+  wrapper.classList.remove('slide-in');
+  // 强制 reflow
+  void wrapper.offsetWidth;
+  wrapper.classList.add('slide-in');
+  loadQuestion();
+}
   </script>
 </body>
 </html>
