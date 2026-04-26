@@ -188,12 +188,231 @@
   };
 
   // ── GAME STATE ─────────────────────────────────────
+  const gs = {
+    screen: STATE.MENU,
+    activeSkinId: 'cat',
+    score: 0,
+    comboCount: 0,
+    maxCombo: 0,
+    isBrushing: false,
+    brushStartTime: 0,
+    phase: PHASE.BACK,
+    phaseElapsed: 0,
+    phaseDuration: 2000,
+    isFakeThisTurn: false,
+    highScore: 0,
+  };
+
+  function resetPlayState(skin) {
+    gs.score = 0;
+    gs.comboCount = 0;
+    gs.maxCombo = 0;
+    gs.isBrushing = false;
+    gs.phase = PHASE.BACK;
+    gs.phaseElapsed = 0;
+    gs.phaseDuration = BM.getBackDuration(skin, Math.random);
+    gs.isFakeThisTurn = false;
+    document.getElementById('score-display').textContent = '0';
+    document.getElementById('combo-display').textContent = '';
+  }
+
   // ── AUDIO ──────────────────────────────────────────
+  function startBrushSound() { /* Task 11 */ }
+  function stopBrushSound() { /* Task 11 */ }
+  function playWarningSound() { /* Task 11 */ }
+  function playDeathSound() { /* Task 11 */ }
+
   // ── RENDER ─────────────────────────────────────────
+  function buildCharacter() { /* Task 6 */ }
+  function updateCharacter() { /* Task 6 */ }
+  function renderCanvas() { /* Task 13 */ }
+  function resizeCanvas() {
+    const canvas = document.getElementById('bg-canvas');
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  }
+
   // ── INPUT ──────────────────────────────────────────
-  // ── GAME LOOP ──────────────────────────────────────
+  function setupInput() { /* Task 7 */ }
+
+  // ── GAME LOOP ─────────────────────────────────────
+  let lastTs = 0;
+
+  function gameLoop(ts) {
+    const dt = Math.min(ts - lastTs, 100);
+    lastTs = ts;
+
+    if (gs.screen === STATE.PLAYING) {
+      updatePlaying(dt);
+    }
+
+    renderCanvas();
+    requestAnimationFrame(gameLoop);
+  }
+
+  function updatePlaying(dt) {
+    gs.phaseElapsed += dt;
+    const skin = getSkin(gs.activeSkinId);
+
+    if (gs.phase === PHASE.BACK) {
+      if (gs.isBrushing) {
+        gs.score += BM.calcScore(dt, BM.getMultiplier(gs.comboCount));
+        document.getElementById('score-display').textContent = gs.score;
+      }
+      if (gs.phaseElapsed >= gs.phaseDuration) {
+        enterTurning(skin);
+      }
+    } else if (gs.phase === PHASE.TURNING) {
+      const midpoint = gs.phaseDuration / 2;
+      if (gs.isFakeThisTurn && gs.phaseElapsed >= midpoint) {
+        enterBack(skin);
+        return;
+      }
+      if (gs.phaseElapsed >= gs.phaseDuration) {
+        enterLooking(skin);
+      }
+      updateCharacter();
+    } else if (gs.phase === PHASE.LOOKING) {
+      if (BM.shouldDie(gs.phaseElapsed, skin.timing.reactionWindow, gs.isBrushing)) {
+        triggerDeath(skin);
+      } else if (!gs.isBrushing && gs.phaseElapsed >= skin.timing.reactionWindow + 600) {
+        gs.comboCount++;
+        gs.maxCombo = Math.max(gs.maxCombo, gs.comboCount);
+        updateComboDisplay();
+        enterBack(skin);
+      }
+    }
+  }
+
+  function enterBack(skin) {
+    gs.phase = PHASE.BACK;
+    gs.phaseElapsed = 0;
+    gs.phaseDuration = BM.getBackDuration(skin, Math.random);
+    gs.isFakeThisTurn = false;
+    updateCharacter();
+  }
+
+  function enterTurning(skin) {
+    gs.phase = PHASE.TURNING;
+    gs.phaseElapsed = 0;
+    gs.phaseDuration = BM.getTurningDuration(skin, Math.random);
+    gs.isFakeThisTurn = BM.isFakeTurn(skin.fakeTurnChance, Math.random);
+    playWarningSound();
+    updateCharacter();
+  }
+
+  function enterLooking(skin) {
+    gs.phase = PHASE.LOOKING;
+    gs.phaseElapsed = 0;
+    gs.phaseDuration = skin.timing.reactionWindow + 600;
+    updateCharacter();
+  }
+
+  function triggerDeath(skin) {
+    gs.isBrushing = false;
+    stopBrushSound();
+    if (gs.score > gs.highScore) {
+      gs.highScore = gs.score;
+      localStorage.setItem('brushmaster_highscore', gs.highScore);
+    }
+    playDeathSound();
+    goToDead();
+  }
+
+  function updateComboDisplay() {
+    const mult = BM.getMultiplier(gs.comboCount);
+    const el = document.getElementById('combo-display');
+    if (mult > 1) {
+      el.textContent = `×${mult} 连击!`;
+      el.style.transform = 'scale(1.3)';
+      setTimeout(() => { el.style.transform = 'scale(1)'; }, 150);
+    } else {
+      el.textContent = '';
+    }
+  }
+
   // ── SCREENS ────────────────────────────────────────
+  function renderSkinGrid() { /* Task 9 */ }
+  function startTutorial() { /* Task 12 */ }
+
+  const screens = {
+    menu:     document.getElementById('screen-menu'),
+    skins:    document.getElementById('screen-skins'),
+    tutorial: document.getElementById('screen-tutorial'),
+    playing:  document.getElementById('screen-playing'),
+    dead:     document.getElementById('screen-dead'),
+  };
+
+  function showScreen(name) {
+    Object.values(screens).forEach(s => s.classList.add('hidden'));
+    screens[name].classList.remove('hidden');
+  }
+
+  function goToMenu() {
+    gs.screen = STATE.MENU;
+    updateHighScoreDisplay();
+    showScreen('menu');
+  }
+
+  function goToSkins() {
+    gs.screen = STATE.SKIN_SELECT;
+    renderSkinGrid();
+    showScreen('skins');
+  }
+
+  function goToPlaying() {
+    gs.screen = STATE.PLAYING;
+    const skin = getSkin(gs.activeSkinId);
+    applyTheme(skin);
+    buildCharacter();
+    resetPlayState(skin);
+    showScreen('playing');
+  }
+
+  function goToDead() {
+    gs.screen = STATE.DEAD;
+    const skin = getSkin(gs.activeSkinId);
+    document.getElementById('dead-char').textContent = skin.emoji;
+    const deadScores = document.getElementById('dead-scores');
+    deadScores.innerHTML =
+      `本局得分 <strong>${gs.score}</strong><br>` +
+      `历史最高 <strong>${gs.highScore}</strong><br>` +
+      `最高连击 <strong>×${BM.getMultiplier(gs.maxCombo)}</strong>`;
+    showScreen('dead');
+  }
+
+  function applyTheme(skin) {
+    document.documentElement.style.setProperty('--bg', skin.colors.bg);
+    document.documentElement.style.setProperty('--primary', skin.colors.primary);
+    document.documentElement.style.setProperty('--accent', skin.colors.accent);
+  }
+
+  function updateHighScoreDisplay() {
+    document.getElementById('menu-highscore').textContent = `最高分: ${gs.highScore}`;
+  }
+
   // ── INIT ───────────────────────────────────────────
+  function init() {
+    gs.highScore = parseInt(localStorage.getItem('brushmaster_highscore') || '0');
+    updateHighScoreDisplay();
+
+    document.getElementById('btn-start').addEventListener('click', () => {
+      const tutorialSeen = localStorage.getItem('brushmaster_tutorial_seen');
+      if (!tutorialSeen) { startTutorial(); } else { goToPlaying(); }
+    });
+    document.getElementById('btn-goto-skins').addEventListener('click', goToSkins);
+    document.getElementById('btn-skin-back').addEventListener('click', goToMenu);
+    document.getElementById('btn-retry').addEventListener('click', goToPlaying);
+    document.getElementById('btn-dead-menu').addEventListener('click', goToMenu);
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    setupInput();
+    requestAnimationFrame(ts => { lastTs = ts; requestAnimationFrame(gameLoop); });
+    showScreen('menu');
+  }
+
+  init();
   </script>
 </body>
 </html>
