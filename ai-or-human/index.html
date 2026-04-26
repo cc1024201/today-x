@@ -461,6 +461,22 @@ function updateHUD(correct) {
     }, { once: true });
   }
 }
+
+// ── INIT ───────────────────────────────────────────
+function init() {
+  // 加载最高记录
+  gs.bestStreak = parseInt(localStorage.getItem('tt_best_streak') || '0', 10);
+
+  // 绑定按钮
+  document.getElementById('btn-start').addEventListener('click', goToPlaying);
+  document.getElementById('btn-ai').addEventListener('click', () => submitAnswer(true));
+  document.getElementById('btn-human').addEventListener('click', () => submitAnswer(false));
+
+  // 初始画面
+  goToMenu();
+}
+
+init();
   </script>
 </body>
 </html>
