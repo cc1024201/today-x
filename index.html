@@ -39,6 +39,61 @@
     .btn:active { transform: scale(0.95); }
     .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 0 var(--shadow); }
     .btn-secondary { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+
+    /* Character */
+    #character { position: relative; width: 120px; height: 120px; }
+
+    .char-body {
+      position: absolute; width: 100px; height: 95px;
+      left: 10px; top: 15px;
+      border-radius: 50% 50% 45% 45%;
+      background: var(--primary);
+    }
+    .char-ear-l, .char-ear-r {
+      position: absolute; width: 22px; height: 28px; top: 8px;
+      background: var(--primary);
+      border-radius: 50% 50% 0 0;
+    }
+    .char-ear-l { left: 18px; transform: rotate(-15deg); }
+    .char-ear-r { right: 18px; transform: rotate(15deg); }
+    .char-eye-l, .char-eye-r {
+      position: absolute; width: 16px; height: 18px; top: 36px;
+      background: #fff; border-radius: 50%;
+    }
+    .char-eye-l { left: 28px; }
+    .char-eye-r { right: 28px; }
+    .char-pupil-l, .char-pupil-r {
+      position: absolute; width: 9px; height: 10px;
+      background: #222; border-radius: 50%;
+      top: 4px; left: 4px;
+    }
+    .char-nose {
+      position: absolute; width: 12px; height: 8px; top: 60px; left: 54px;
+      background: #ffb347; border-radius: 50%;
+    }
+    .char-tail {
+      position: absolute; width: 12px; height: 60px; right: 2px; top: 50px;
+      background: var(--primary); border-radius: 6px;
+      transform-origin: top center;
+      transform: rotate(20deg);
+    }
+    .char-angry .char-eye-l, .char-angry .char-eye-r { height: 8px; top: 40px; }
+    .char-dead .char-body { background: #c0392b; }
+    .char-dead .char-eye-l, .char-dead .char-eye-r { height: 4px; top: 42px; }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%       { transform: translateX(-8px); }
+      40%       { transform: translateX(8px); }
+      60%       { transform: translateX(-6px); }
+      80%       { transform: translateX(6px); }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #dead-title { animation: shake 0.5s ease; }
+    #screen-dead .btn { animation: fadeInUp 0.4s ease 0.5s both; }
   </style>
 </head>
 <body>
@@ -226,8 +281,102 @@
   function playDeathSound() { /* Task 11 */ }
 
   // ── RENDER ─────────────────────────────────────────
-  function buildCharacter() { /* Task 6 */ }
-  function updateCharacter() { /* Task 6 */ }
+  function buildCharacter() {
+    const el = document.getElementById('character');
+    const skin = getSkin(gs.activeSkinId);
+    switch (skin.id) {
+      case 'cat':     el.innerHTML = buildCatHTML(); break;
+      case 'boss':    el.innerHTML = buildBossHTML(); break;
+      case 'teacher': el.innerHTML = buildTeacherHTML(); break;
+      case 'camera':  el.innerHTML = buildCameraHTML(); break;
+    }
+  }
+
+  function buildCatHTML() {
+    return `<div id="character-inner" style="position:absolute;inset:0;perspective:200px">
+      <div class="char-body"></div>
+      <div class="char-ear-l"></div><div class="char-ear-r"></div>
+      <div class="char-eye-l"><div class="char-pupil-l"></div></div>
+      <div class="char-eye-r"><div class="char-pupil-r"></div></div>
+      <div class="char-nose"></div><div class="char-tail"></div>
+    </div>`;
+  }
+
+  function buildBossHTML() {
+    return `<div id="character-inner" style="position:absolute;inset:0;perspective:200px">
+      <div style="position:absolute;width:90px;height:90px;left:15px;top:10px;
+           background:#9c27b0;border-radius:50%;"></div>
+      <div style="position:absolute;top:38px;left:22px;width:22px;height:5px;
+           background:#fff;border-radius:3px;"></div>
+      <div style="position:absolute;top:38px;right:22px;width:22px;height:5px;
+           background:#fff;border-radius:3px;"></div>
+      <div style="position:absolute;top:58px;left:28px;width:44px;height:3px;
+           background:#fff;border-radius:2px;transform:rotate(180deg)"></div>
+      <div style="position:absolute;top:82px;left:50px;width:20px;height:28px;
+           background:#7b1fa2;clip-path:polygon(50% 0%, 0% 100%, 100% 100%);"></div>
+    </div>`;
+  }
+
+  function buildTeacherHTML() {
+    return `<div id="character-inner" style="position:absolute;inset:0;perspective:200px">
+      <div style="position:absolute;width:90px;height:90px;left:15px;top:10px;
+           background:#43a047;border-radius:40% 40% 35% 35%;"></div>
+      <div style="position:absolute;top:34px;left:18px;width:26px;height:18px;
+           background:transparent;border:3px solid #fff;border-radius:4px;"></div>
+      <div style="position:absolute;top:34px;right:18px;width:26px;height:18px;
+           background:transparent;border:3px solid #fff;border-radius:4px;"></div>
+      <div style="position:absolute;top:43px;left:44px;width:12px;height:2px;background:#fff"></div>
+      <div style="position:absolute;top:60px;left:28px;width:44px;height:3px;
+           background:#fff;border-radius:2px;"></div>
+    </div>`;
+  }
+
+  function buildCameraHTML() {
+    return `<div id="character-inner" style="position:absolute;inset:0;perspective:200px">
+      <div style="position:absolute;width:80px;height:60px;left:20px;top:20px;
+           background:#1e88e5;border-radius:8px;border:3px solid #1565c0;"></div>
+      <div style="position:absolute;width:36px;height:36px;left:42px;top:32px;
+           background:#0d47a1;border-radius:50%;border:4px solid #82b1ff;"></div>
+      <div style="position:absolute;width:16px;height:16px;left:52px;top:42px;
+           background:#e3f2fd;border-radius:50%;"></div>
+      <div id="camera-led" style="position:absolute;top:10px;right:10px;width:10px;height:10px;
+           background:#4caf50;border-radius:50%;box-shadow:0 0 8px #4caf50;"></div>
+    </div>`;
+  }
+
+  function updateCharacter() {
+    const el = document.getElementById('character');
+    const inner = document.getElementById('character-inner');
+    if (!inner) return;
+
+    el.className = '';
+
+    if (gs.phase === PHASE.BACK) {
+      inner.style.transform = 'scaleX(-1)';
+      if (gs.activeSkinId === 'camera') {
+        const led = document.getElementById('camera-led');
+        if (led) { led.style.background = '#4caf50'; led.style.boxShadow = '0 0 8px #4caf50'; }
+      }
+    } else if (gs.phase === PHASE.TURNING) {
+      const progress = Math.min(gs.phaseElapsed / gs.phaseDuration, 1);
+      const deg = gs.isFakeThisTurn
+        ? (progress <= 0.5 ? progress * 2 * 90 : (1 - progress) * 2 * 90)
+        : progress * 180;
+      inner.style.transform = `rotateY(${deg}deg)`;
+      if (gs.activeSkinId === 'camera') {
+        const led = document.getElementById('camera-led');
+        if (led) { led.style.background = '#f44336'; led.style.boxShadow = '0 0 8px #f44336'; }
+      }
+    } else if (gs.phase === PHASE.LOOKING) {
+      inner.style.transform = 'rotateY(180deg)';
+      el.classList.add('char-angry');
+      if (gs.activeSkinId === 'camera') {
+        const led = document.getElementById('camera-led');
+        if (led) { led.style.background = '#f44336'; led.style.boxShadow = '0 0 8px #f44336'; }
+      }
+    }
+  }
+
   function renderCanvas() { /* Task 13 */ }
   function resizeCanvas() {
     const canvas = document.getElementById('bg-canvas');
@@ -236,7 +385,29 @@
   }
 
   // ── INPUT ──────────────────────────────────────────
-  function setupInput() { /* Task 7 */ }
+  function setupInput() {
+    const zone = document.getElementById('brush-zone');
+
+    zone.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      if (gs.screen !== STATE.PLAYING) return;
+      gs.isBrushing = true;
+      zone.style.background = '#ffd4a8';
+      zone.style.transform = 'scale(0.97)';
+      startBrushSound();
+    });
+
+    window.addEventListener('pointerup', () => {
+      if (!gs.isBrushing) return;
+      gs.isBrushing = false;
+      const z = document.getElementById('brush-zone');
+      z.style.background = '#ffe8d0';
+      z.style.transform = 'scale(1)';
+      stopBrushSound();
+    });
+
+    document.getElementById('brush-zone').addEventListener('contextmenu', e => e.preventDefault());
+  }
 
   // ── GAME LOOP ─────────────────────────────────────
   let lastTs = 0;
