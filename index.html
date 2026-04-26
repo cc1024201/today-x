@@ -18,7 +18,6 @@
     #app {
       position: relative; width: 100%; height: 100%;
       max-width: 420px; margin: 0 auto;
-      display: flex; flex-direction: column;
     }
     canvas#bg-canvas {
       position: absolute; inset: 0; width: 100%; height: 100%;
@@ -109,7 +108,81 @@
   </div>
   <script>
   // ── CONSTANTS & SKINS ──────────────────────────────
+  const STATE = { MENU:'MENU', SKIN_SELECT:'SKIN_SELECT', TUTORIAL:'TUTORIAL', PLAYING:'PLAYING', DEAD:'DEAD' };
+  const PHASE = { BACK:'BACK', TURNING:'TURNING', LOOKING:'LOOKING' };
+
+  const SKINS = [
+    {
+      id: 'cat',
+      name: '🐱 橙猫 째무',
+      emoji: '🐱',
+      label: '原版手感',
+      colors: { bg: '#fff8f0', primary: '#ff8c42', accent: '#ff6b35' },
+      timing: { backMin: 2000, backMax: 4000, turningMin: 600, turningMax: 600, reactionWindow: 500 },
+      fakeTurnChance: 0,
+    },
+    {
+      id: 'boss',
+      name: '😴 睡觉领导',
+      emoji: '😴',
+      label: '最难预判',
+      colors: { bg: '#f3e5f5', primary: '#9c27b0', accent: '#7b1fa2' },
+      timing: { backMin: 1000, backMax: 5000, turningMin: 400, turningMax: 800, reactionWindow: 500 },
+      fakeTurnChance: 0,
+    },
+    {
+      id: 'teacher',
+      name: '👁️ 监考老师',
+      emoji: '👁️',
+      label: '假转头 · 250ms',
+      colors: { bg: '#e8f5e9', primary: '#43a047', accent: '#2e7d32' },
+      timing: { backMin: 1500, backMax: 3000, turningMin: 400, turningMax: 400, reactionWindow: 250 },
+      fakeTurnChance: 0.3,
+    },
+    {
+      id: 'camera',
+      name: '📷 监控摄像头',
+      emoji: '📷',
+      label: '固定节奏',
+      colors: { bg: '#e3f2fd', primary: '#1e88e5', accent: '#1565c0' },
+      timing: { backMin: 2000, backMax: 2000, turningMin: 500, turningMax: 500, reactionWindow: 500 },
+      fakeTurnChance: 0,
+    },
+  ];
+
+  function getSkin(id) { return SKINS.find(s => s.id === id) || SKINS[0]; }
+
   // ── PURE LOGIC ─────────────────────────────────────
+  const BM = {}; // 挂在全局，方便控制台测试
+
+  BM.calcScore = function(brushMs, multiplier) {
+    return Math.floor(brushMs * multiplier / 100);
+  };
+
+  BM.getMultiplier = function(comboCount) {
+    if (comboCount >= 12) return 16;
+    if (comboCount >= 9)  return 8;
+    if (comboCount >= 6)  return 4;
+    if (comboCount >= 3)  return 2;
+    return 1;
+  };
+
+  BM.shouldDie = function(elapsedInLooking, reactionWindow, isBrushing) {
+    return isBrushing && elapsedInLooking > reactionWindow;
+  };
+
+  BM.isFakeTurn = function(fakeTurnChance, rng) {
+    return rng() < fakeTurnChance;
+  };
+
+  BM.getBackDuration = function(skin, rng) {
+    return skin.timing.backMin + rng() * (skin.timing.backMax - skin.timing.backMin);
+  };
+
+  BM.getTurningDuration = function(skin, rng) {
+    return skin.timing.turningMin + rng() * (skin.timing.turningMax - skin.timing.turningMin);
+  };
+
   // ── GAME STATE ─────────────────────────────────────
   // ── AUDIO ──────────────────────────────────────────
   // ── RENDER ─────────────────────────────────────────
