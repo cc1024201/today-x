@@ -311,7 +311,7 @@
   }
 
   function stopBrushSound() {
-    if (!brushGain) return;
+    if (!brushNode) return;
     const ctx = getAudioCtx();
     brushGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.05);
     const bn = brushNode;
@@ -323,6 +323,7 @@
 
   function playWarningSound() {
     const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
@@ -336,6 +337,7 @@
 
   function playDeathSound() {
     const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sawtooth';
@@ -603,6 +605,7 @@
       });
       card.addEventListener('pointerdown', () => { card.style.transform = 'scale(0.95)'; });
       card.addEventListener('pointerup', () => { card.style.transform = 'scale(1)'; });
+      card.addEventListener('pointerleave', () => { card.style.transform = 'scale(1)'; });
       grid.appendChild(card);
     });
   }
