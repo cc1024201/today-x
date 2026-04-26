@@ -150,7 +150,11 @@
     },
   ];
 
-  function getSkin(id) { return SKINS.find(s => s.id === id) || SKINS[0]; }
+  function getSkin(id) {
+    const skin = SKINS.find(s => s.id === id);
+    if (!skin) { console.warn(`Unknown skin id: "${id}", falling back to default`); return SKINS[0]; }
+    return skin;
+  }
 
   // ── PURE LOGIC ─────────────────────────────────────
   const BM = {}; // 挂在全局，方便控制台测试
@@ -168,7 +172,7 @@
   };
 
   BM.shouldDie = function(elapsedInLooking, reactionWindow, isBrushing) {
-    return isBrushing && elapsedInLooking > reactionWindow;
+    return isBrushing && elapsedInLooking >= reactionWindow;
   };
 
   BM.isFakeTurn = function(fakeTurnChance, rng) {
@@ -176,11 +180,11 @@
   };
 
   BM.getBackDuration = function(skin, rng) {
-    return skin.timing.backMin + rng() * (skin.timing.backMax - skin.timing.backMin);
+    return Math.round(skin.timing.backMin + rng() * (skin.timing.backMax - skin.timing.backMin));
   };
 
   BM.getTurningDuration = function(skin, rng) {
-    return skin.timing.turningMin + rng() * (skin.timing.turningMax - skin.timing.turningMin);
+    return Math.round(skin.timing.turningMin + rng() * (skin.timing.turningMax - skin.timing.turningMin));
   };
 
   // ── GAME STATE ─────────────────────────────────────
