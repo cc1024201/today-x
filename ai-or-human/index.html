@@ -96,8 +96,8 @@
 
     #card {
       width: 100%;
-      height: 220px;
-      position: relative;
+      min-height: 220px;
+      display: grid;
       transform-style: preserve-3d;
       transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -105,8 +105,7 @@
     #card.no-transition { transition: none; }
 
     #card-front, #card-back {
-      position: absolute;
-      inset: 0;
+      grid-area: 1 / 1;
       border-radius: 20px;
       padding: 28px 24px;
       backface-visibility: hidden;
@@ -128,15 +127,22 @@
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       transform: rotateY(180deg);
-      gap: 14px;
+      gap: 12px;
     }
+    #verdict-label {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    #verdict-label.correct { color: var(--correct); }
+    #verdict-label.wrong   { color: var(--wrong); }
     #answer-label {
       font-size: 20px;
       font-weight: 900;
     }
     #hint-text {
       font-size: 13px;
-      color: var(--muted);
+      color: #999;
       line-height: 1.6;
     }
 
@@ -188,7 +194,8 @@
     #back-btn:hover { color: var(--text); }
 
     @media (max-height: 600px) {
-      #card-front, #card-back { min-height: 160px; padding: 18px 16px; }
+      #card { min-height: 160px; }
+      #card-front, #card-back { padding: 18px 16px; }
       #card-front { font-size: 15px; }
     }
   </style>
@@ -216,7 +223,8 @@
           <div id="card-front">
             <p id="question-text"></p>
           </div>
-          <div id="card-back">
+          <div id="card-back" aria-live="polite" aria-atomic="true">
+            <div id="verdict-label"></div>
             <div id="answer-label"></div>
             <p id="hint-text"></p>
           </div>
@@ -416,9 +424,12 @@ function loadQuestion() {
   void card.offsetWidth;
   card.classList.remove('no-transition');
   document.getElementById('card-front').classList.remove('correct', 'wrong');
+  document.getElementById('verdict-label').textContent = '';
   document.getElementById('btn-ai').disabled = false;
   document.getElementById('btn-human').disabled = false;
   gs.answered = false;
+  // 自动聚焦第一个答题按钮，避免键盘焦点在 disabled 期间丢失
+  document.getElementById('btn-ai').focus({ preventScroll: true });
 }
 
 // ── ANSWER ─────────────────────────────────────────
@@ -433,7 +444,11 @@ function submitAnswer(guessIsAI) {
   const cardFront = document.getElementById('card-front');
   cardFront.classList.add(correct ? 'correct' : 'wrong');
 
-  // 填充背面内容
+  // 填充背面内容（verdict 文字标签 + 颜色双重反馈，色盲友好）
+  const verdict = document.getElementById('verdict-label');
+  verdict.textContent = correct ? '✅ 答对了' : '❌ 答错了';
+  verdict.classList.remove('correct', 'wrong');
+  verdict.classList.add(correct ? 'correct' : 'wrong');
   document.getElementById('answer-label').textContent =
     q.isAI ? '🤖 AI 写的' : '👤 人类写的';
   document.getElementById('hint-text').textContent = q.hint;
