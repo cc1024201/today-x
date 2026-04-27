@@ -1,8 +1,38 @@
+# AI 还是人？实现计划
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** 单文件浏览器答题游戏，展示文字片段让玩家判断 AI 或人类所写，翻牌揭晓，追连击最高记录。
+
+**Architecture:** 单文件 `ai-or-human/index.html`，零依赖零构建。纯 HTML+CSS+JS，CSS 3D 翻牌动画，`TT` 纯逻辑命名空间，状态机 MENU→PLAYING，localStorage 持久化最高连击。
+
+**Tech Stack:** HTML5, CSS3（transform-style: preserve-3d, @keyframes）, Vanilla JS, localStorage
+
+---
+
+## 文件结构
+
+```
+today-x/
+└── ai-or-human/
+    └── index.html   ← 全部代码，单文件
+```
+
+---
+
+### Task 1: HTML 骨架 + CSS 变量 + 屏幕布局
+
+**Files:**
+- Create: `ai-or-human/index.html`
+
+- [ ] **Step 1: 创建文件，写完整 HTML 骨架**
+
+```html
 <!DOCTYPE html>
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>AI 还是人？</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -12,17 +42,17 @@
       --card-bg: #1e1e1e;
       --card-border: #2e2e2e;
       --text: #f0f0f0;
-      --muted: #888;
+      --muted: #666;
       --correct: #22c55e;
       --wrong: #ef4444;
-      --ai-btn: #4f46e5;
-      --human-btn: #b45309;
+      --ai-btn: #6366f1;
+      --human-btn: #f59e0b;
     }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'SimHei', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', sans-serif;
       min-height: 100dvh;
       display: flex;
       align-items: center;
@@ -97,15 +127,16 @@
     #card {
       width: 100%;
       min-height: 220px;
-      display: grid;
+      position: relative;
       transform-style: preserve-3d;
       transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
     }
     #card.flipped { transform: rotateY(180deg); }
-    #card.no-transition { transition: none; }
 
     #card-front, #card-back {
-      grid-area: 1 / 1;
+      position: absolute;
+      inset: 0;
+      min-height: 220px;
       border-radius: 20px;
       padding: 28px 24px;
       backface-visibility: hidden;
@@ -127,22 +158,15 @@
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       transform: rotateY(180deg);
-      gap: 12px;
+      gap: 14px;
     }
-    #verdict-label {
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-    #verdict-label.correct { color: var(--correct); }
-    #verdict-label.wrong   { color: var(--wrong); }
     #answer-label {
       font-size: 20px;
       font-weight: 900;
     }
     #hint-text {
       font-size: 13px;
-      color: #999;
+      color: var(--muted);
       line-height: 1.6;
     }
 
@@ -158,7 +182,7 @@
       transition: transform 0.1s, opacity 0.1s;
       color: #fff;
     }
-    .answer-btn:not(:disabled):active { transform: scale(0.96); }
+    .answer-btn:active { transform: scale(0.96); }
     .answer-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
     #btn-ai    { background: var(--ai-btn); }
     #btn-human { background: var(--human-btn); }
@@ -178,28 +202,6 @@
       to   { opacity: 1; transform: translateY(0); }
     }
     #card-wrapper.slide-in { animation: slideInUp 0.3s ease; }
-
-    #back-btn {
-      position: absolute;
-      bottom: 28px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: transparent;
-      border: none;
-      color: var(--muted);
-      font-size: 13px;
-      cursor: pointer;
-      padding: 8px 16px;
-    }
-    #back-btn:hover { color: var(--text); }
-
-    @media (max-height: 600px) {
-      #card { min-height: 160px; }
-      #card-front, #card-back { padding: 18px 16px; }
-      #card-front { font-size: 15px; }
-      .screen { padding: 16px 24px 56px; gap: 12px; }
-      #back-btn { bottom: 12px; }
-    }
   </style>
 </head>
 <body>
@@ -210,13 +212,13 @@
       <div id="menu-title">AI 还是人？</div>
       <div id="menu-subtitle">你能分清吗？</div>
       <div id="menu-best"></div>
-      <button id="btn-start" type="button" class="btn btn-primary">开始挑战</button>
+      <button id="btn-start" class="btn btn-primary">开始挑战</button>
     </div>
 
     <!-- PLAYING -->
     <div id="screen-playing" class="screen hidden">
       <div id="hud">
-        <div id="streak-display"><span aria-label="连击">🔥</span> ×<span id="streak-num">0</span></div>
+        <div id="streak-display">🔥 ×<span id="streak-num">0</span></div>
         <div id="best-display">最高 <span id="best-num">0</span></div>
       </div>
 
@@ -225,8 +227,7 @@
           <div id="card-front">
             <p id="question-text"></p>
           </div>
-          <div id="card-back" aria-live="polite" aria-atomic="true">
-            <div id="verdict-label"></div>
+          <div id="card-back">
             <div id="answer-label"></div>
             <p id="hint-text"></p>
           </div>
@@ -234,15 +235,47 @@
       </div>
 
       <div id="btn-row">
-        <button id="btn-ai" type="button" class="answer-btn"><span aria-hidden="true">🤖</span> AI 写的</button>
-        <button id="btn-human" type="button" class="answer-btn"><span aria-hidden="true">👤</span> 人类写的</button>
+        <button id="btn-ai" class="answer-btn">🤖 AI 写的</button>
+        <button id="btn-human" class="answer-btn">👤 人类写的</button>
       </div>
-
-      <button id="back-btn" type="button">返回菜单</button>
     </div>
 
   </div>
   <script>
+    // JS goes here in later tasks
+  </script>
+</body>
+</html>
+```
+
+- [ ] **Step 2: 在浏览器中打开，确认两个屏幕布局正确**
+
+```bash
+cd /home/zhcao/today-x && python3 -m http.server 8765
+# 访问 http://localhost:8765/ai-or-human/
+```
+
+预期：看到黑色背景 + 主菜单标题居中显示。
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add ai-or-human/index.html
+git commit -m "feat: HTML skeleton, CSS layout and card structure"
+```
+
+---
+
+### Task 2: 题库数据（20 道题）
+
+**Files:**
+- Modify: `ai-or-human/index.html`（`<script>` 标签内）
+
+- [ ] **Step 1: 在 `<script>` 标签内写题库数组**
+
+将 `// JS goes here in later tasks` 替换为：
+
+```js
 // ── DATASET ────────────────────────────────────────
 const QUESTIONS = [
   // ── 朋友圈 / 微博（AI）──
@@ -353,40 +386,37 @@ const QUESTIONS = [
     isAI: false,
     hint: '"想起却不行动"是人类情感的真实矛盾，AI 会让主角去联系或感慨万千'
   },
-  // ── 难题：AI 模仿人类（让人犹豫）──
-  {
-    text: '上周末跟朋友去爬了趟山，回来腿酸了好几天，但照片拍得还不错，发个圈纪念一下',
-    isAI: true,
-    hint: '看似有具体细节（上周末/爬山/腿酸），但"回来腿酸了好几天""发个圈纪念一下"过于工整，是 AI 学的"生活流"套路——真人会写哪座山、和谁去、具体疼哪'
-  },
-  {
-    text: '充电速度可以，外观也挺漂亮，就是手感稍微差了点，整体还是值得的',
-    isAI: true,
-    hint: '三段式评价模板（优+优+缺+总结）每段恰好一句过于工整。真人会写"手感"到底怎么差——硌手？太重？滑？'
-  },
-  {
-    text: '今天一个人去了趟咖啡馆，看着窗外的人来人往，突然觉得生活就像一杯咖啡，苦中带甜',
-    isAI: true,
-    hint: '"今天""咖啡馆"看似具体，但"生活就像一杯咖啡，苦中带甜"是 AI 必备的比喻收尾——真人不会这么文艺地总结自己的下午'
-  },
-  // ── 难题：人类写的看起来像 AI（让人犹豫）──
-  {
-    text: '买了三个月，没坏',
-    isAI: false,
-    hint: '极简评价无任何修饰，反而是真人最常见的随手好评——AI 会写得更详细以显得"有用"，比如加一句"质量过关"或"性价比高"'
-  },
-  {
-    text: '现在的小孩好像跟我们小时候不一样了',
-    isAI: false,
-    hint: '看起来空泛像 AI 套话，但"好像""不一样了"的模糊语气是人类对时代变迁的真实困惑——AI 会确定地说出"在哪些方面不一样"'
-  },
-  {
-    text: '下班路上买了个煎饼，老板少给了一根葱，我也没说什么',
-    isAI: false,
-    hint: '极琐碎的日常+"我也没说什么"的克制，是人类生活才有的颗粒感——AI 写散文会有戏剧张力或情感升华，不会让事情这么平淡地过去'
-  },
 ];
+```
 
+- [ ] **Step 2: 在浏览器控制台验证题库**
+
+打开 `http://localhost:8765/ai-or-human/`，控制台运行：
+
+```js
+console.log(QUESTIONS.length);            // 期望：20
+console.log(QUESTIONS.filter(q => q.isAI).length);   // 期望：10
+console.log(QUESTIONS.filter(q => !q.isAI).length);  // 期望：10
+console.log(QUESTIONS.every(q => q.text && q.hint && typeof q.isAI === 'boolean')); // 期望：true
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add ai-or-human/index.html
+git commit -m "feat: add 20-question dataset (10 AI, 10 human)"
+```
+
+---
+
+### Task 3: 纯逻辑函数（TT 命名空间）
+
+**Files:**
+- Modify: `ai-or-human/index.html`
+
+- [ ] **Step 1: 在题库数组后追加 TT 命名空间**
+
+```js
 // ── PURE LOGIC ─────────────────────────────────────
 const TT = {};
 
@@ -406,7 +436,43 @@ TT.isCorrect = function(guessIsAI, questionIsAI) {
 TT.getNextStreak = function(current, correct) {
   return correct ? current + 1 : 0;
 };
+```
 
+- [ ] **Step 2: 控制台验证三个函数**
+
+```js
+// shuffle 不改变长度，不重复
+const s = TT.shuffle([1,2,3,4,5]);
+console.log(s.length === 5, new Set(s).size === 5); // true true
+
+// isCorrect
+console.log(TT.isCorrect(true, true));   // true
+console.log(TT.isCorrect(true, false));  // false
+console.log(TT.isCorrect(false, false)); // true
+
+// getNextStreak
+console.log(TT.getNextStreak(3, true));  // 4
+console.log(TT.getNextStreak(3, false)); // 0
+console.log(TT.getNextStreak(0, true));  // 1
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add ai-or-human/index.html
+git commit -m "feat: TT pure logic namespace (shuffle, isCorrect, getNextStreak)"
+```
+
+---
+
+### Task 4: 游戏状态对象 + 状态机
+
+**Files:**
+- Modify: `ai-or-human/index.html`
+
+- [ ] **Step 1: 追加状态常量和游戏状态对象**
+
+```js
 // ── STATE ──────────────────────────────────────────
 const STATE = { MENU: 'MENU', PLAYING: 'PLAYING' };
 
@@ -419,20 +485,16 @@ const gs = {
   answered: false,   // 当前题是否已作答（防止重复点击）
 };
 
-let pendingTimer = null;
-
 function showScreen(name) {
   document.getElementById('screen-menu').classList.toggle('hidden', name !== 'menu');
   document.getElementById('screen-playing').classList.toggle('hidden', name !== 'playing');
 }
 
 function goToMenu() {
-  clearTimeout(pendingTimer);
   gs.screen = STATE.MENU;
   document.getElementById('menu-best').textContent =
     gs.bestStreak > 0 ? `历史最高连击 ${gs.bestStreak}` : '';
   showScreen('menu');
-  document.getElementById('btn-start').focus({ preventScroll: true });
 }
 
 function goToPlaying() {
@@ -441,8 +503,6 @@ function goToPlaying() {
   gs.deck = TT.shuffle(QUESTIONS);
   gs.deckIndex = 0;
   gs.answered = false;
-  document.getElementById('streak-num').textContent = 0;
-  document.getElementById('best-num').textContent = gs.bestStreak;
   showScreen('playing');
   loadQuestion();
 }
@@ -454,23 +514,41 @@ function loadQuestion() {
   }
   const q = gs.deck[gs.deckIndex];
   document.getElementById('question-text').textContent = q.text;
-  const card = document.getElementById('card');
-  card.classList.add('no-transition');
-  card.classList.remove('flipped');
-  // 强制 reflow，然后恢复 transition
-  void card.offsetWidth;
-  card.classList.remove('no-transition');
-  document.getElementById('card-front').classList.remove('correct', 'wrong');
-  document.getElementById('verdict-label').textContent = '';
-  document.getElementById('answer-label').textContent = '';
-  document.getElementById('hint-text').textContent = '';
+  const cardFront = document.getElementById('card-front');
+  cardFront.classList.remove('correct', 'wrong');
+  document.getElementById('card').classList.remove('flipped');
   document.getElementById('btn-ai').disabled = false;
   document.getElementById('btn-human').disabled = false;
   gs.answered = false;
-  // 自动聚焦第一个答题按钮，避免键盘焦点在 disabled 期间丢失
-  document.getElementById('btn-ai').focus({ preventScroll: true });
 }
+```
 
+- [ ] **Step 2: 控制台验证**
+
+```js
+goToPlaying();
+console.log(gs.screen);        // "PLAYING"
+console.log(gs.deck.length);   // 20
+console.log(typeof gs.deck[0].text); // "string"
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add ai-or-human/index.html
+git commit -m "feat: game state object, state machine, loadQuestion"
+```
+
+---
+
+### Task 5: 答题交互 + 翻牌揭晓
+
+**Files:**
+- Modify: `ai-or-human/index.html`
+
+- [ ] **Step 1: 追加答题逻辑**
+
+```js
 // ── ANSWER ─────────────────────────────────────────
 function submitAnswer(guessIsAI) {
   if (gs.answered) return;
@@ -483,15 +561,9 @@ function submitAnswer(guessIsAI) {
   const cardFront = document.getElementById('card-front');
   cardFront.classList.add(correct ? 'correct' : 'wrong');
 
-  // 填充背面内容（verdict 文字标签 + 颜色双重反馈，色盲友好）
-  const verdict = document.getElementById('verdict-label');
-  verdict.textContent = correct ? '✅ 答对了' : '❌ 答错了';
-  verdict.classList.remove('correct', 'wrong');
-  verdict.classList.add(correct ? 'correct' : 'wrong');
-  document.getElementById('answer-label').innerHTML =
-    q.isAI
-      ? '<span aria-hidden="true">🤖</span> 这是 AI 写的'
-      : '<span aria-hidden="true">👤</span> 这是人类写的';
+  // 填充背面内容
+  document.getElementById('answer-label').textContent =
+    q.isAI ? '🤖 AI 写的' : '👤 人类写的';
   document.getElementById('hint-text').textContent = q.hint;
 
   // 禁用按钮
@@ -511,7 +583,7 @@ function submitAnswer(guessIsAI) {
   updateHUD(correct);
 
   // 1.5 秒后进入下一题
-  pendingTimer = setTimeout(() => {
+  setTimeout(() => {
     gs.deckIndex++;
     advanceCard();
   }, 1500);
@@ -525,7 +597,34 @@ function advanceCard() {
   wrapper.classList.add('slide-in');
   loadQuestion();
 }
+```
 
+- [ ] **Step 2: 临时测试（控制台）**
+
+```js
+goToPlaying();
+submitAnswer(true);  // 第一题若是 AI 则绿色翻牌，否则红色
+```
+
+预期：卡片颜色变化，0.55s 后翻转，背面显示答案和 hint。
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add ai-or-human/index.html
+git commit -m "feat: answer submission, card flip reveal, auto-advance"
+```
+
+---
+
+### Task 6: 连击 HUD + 抖动动画
+
+**Files:**
+- Modify: `ai-or-human/index.html`
+
+- [ ] **Step 1: 追加 HUD 更新函数**
+
+```js
 // ── HUD ────────────────────────────────────────────
 function updateHUD(correct) {
   const streakEl = document.getElementById('streak-display');
@@ -541,24 +640,167 @@ function updateHUD(correct) {
     }, { once: true });
   }
 }
+```
 
+- [ ] **Step 2: 验证抖动动画**
+
+控制台运行：
+```js
+goToPlaying();
+gs.streak = 5;
+updateHUD(false);  // 连击归零，数字应抖动
+```
+
+预期：左上角连击数字抖动一次，值变为 0。
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add ai-or-human/index.html
+git commit -m "feat: streak HUD with shake animation on reset"
+```
+
+---
+
+### Task 7: Input 事件绑定 + localStorage + 主菜单
+
+**Files:**
+- Modify: `ai-or-human/index.html`
+
+- [ ] **Step 1: 追加初始化函数**
+
+```js
 // ── INIT ───────────────────────────────────────────
 function init() {
   // 加载最高记录
-  const saved = parseInt(localStorage.getItem('tt_best_streak'), 10);
-  gs.bestStreak = (isNaN(saved) || saved < 0) ? 0 : saved;
+  gs.bestStreak = parseInt(localStorage.getItem('tt_best_streak') || '0', 10);
 
   // 绑定按钮
   document.getElementById('btn-start').addEventListener('click', goToPlaying);
   document.getElementById('btn-ai').addEventListener('click', () => submitAnswer(true));
   document.getElementById('btn-human').addEventListener('click', () => submitAnswer(false));
-  document.getElementById('back-btn').addEventListener('click', goToMenu);
 
   // 初始画面
   goToMenu();
 }
 
 init();
-  </script>
-</body>
-</html>
+```
+
+- [ ] **Step 2: 完整游玩测试**
+
+```bash
+# 浏览器访问 http://localhost:8765/ai-or-human/
+```
+
+逐项验证：
+1. 主菜单显示正常
+2. 点击「开始挑战」进入游戏
+3. 点击「AI 写的」或「人类写的」触发翻牌
+4. 答对卡片变绿，答错变红，背面显示 hint
+5. 1.5 秒后自动进入下一题
+6. 连击数正确更新
+7. 答错时连击抖动归零
+8. 刷新页面后最高连击保留
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add ai-or-human/index.html
+git commit -m "feat: input binding, localStorage persistence, menu wiring"
+```
+
+---
+
+### Task 8: 主菜单返回 + 移动端适配
+
+**Files:**
+- Modify: `ai-or-human/index.html`
+
+- [ ] **Step 1: 在 HUD 区域加"返回菜单"入口，并修复移动端样式**
+
+在 CSS 中追加（`@keyframes slideInUp` 后面）：
+
+```css
+#back-btn {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 8px 16px;
+}
+#back-btn:hover { color: var(--text); }
+
+@media (max-height: 600px) {
+  #card-front, #card-back { min-height: 160px; padding: 18px 16px; }
+  #card-front { font-size: 15px; }
+}
+```
+
+在 `#screen-playing` div 内（`#btn-row` 之后）追加：
+
+```html
+<button id="back-btn">返回菜单</button>
+```
+
+在 `init()` 的绑定区域追加：
+
+```js
+document.getElementById('back-btn').addEventListener('click', goToMenu);
+```
+
+- [ ] **Step 2: 测试移动端尺寸**
+
+Chrome DevTools → iPhone 12 Pro（390×844），验证：
+- 卡片文字可读，不被截断
+- 两个按钮可点击，触摸区域足够大
+- 返回菜单按钮可见
+
+- [ ] **Step 3: 最终 Commit**
+
+```bash
+git add ai-or-human/index.html
+git commit -m "feat: back button, mobile layout polish — v1.0"
+```
+
+---
+
+### Task 9: 接入首页导航
+
+**Files:**
+- Modify: `today-x/index.html`
+
+- [ ] **Step 1: 在根目录 `index.html` 的 `.grid` 中追加新卡片**
+
+在 `brush-master` 的 `<a class="card">` 之后追加：
+
+```html
+<a class="card" href="ai-or-human/">
+  <div class="card-emoji">🤖</div>
+  <div class="card-title">AI 还是人？</div>
+  <div class="card-desc">Turing Test 答题游戏 — 判断这段文字是 AI 写的还是人类写的，追最高连击。</div>
+  <div class="card-tag">游戏</div>
+  <div class="card-date">2026-04-26</div>
+</a>
+```
+
+- [ ] **Step 2: 验证首页**
+
+```bash
+# 访问 http://localhost:8765/
+```
+
+预期：两张卡片并列，点击「AI 还是人？」跳转到游戏。
+
+- [ ] **Step 3: Commit 并推送**
+
+```bash
+git add today-x/index.html
+git commit -m "feat: add AI-or-Human to homepage gallery"
+git push
+```
